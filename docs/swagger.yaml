@@ -11,9 +11,9 @@ definitions:
         example: "123456"
         type: string
     required:
-    - age
-    - name
-    - passwd
+      - age
+      - name
+      - passwd
     type: object
   middleware.Response:
     properties:
@@ -29,34 +29,34 @@ definitions:
         type: object
     type: object
 info:
-  contact: {}
+  contact: { }
 paths:
   /demo/bind:
     post:
       consumes:
-      - application/json
+        - application/json
       description: 测试数据绑定
       operationId: /demo/bind
       parameters:
-      - description: body
-        in: body
-        name: polygon
-        required: true
-        schema:
-          $ref: '#/definitions/dto.DemoInput'
+        - description: body
+          in: body
+          name: polygon
+          required: true
+          schema:
+            $ref: '#/definitions/dto.DemoInput'
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: success
           schema:
             allOf:
-            - $ref: '#/definitions/middleware.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.DemoInput'
-              type: object
+              - $ref: '#/definitions/middleware.Response'
+              - properties:
+                  data:
+                    $ref: '#/definitions/dto.DemoInput'
+                type: object
       summary: 测试数据绑定
       tags:
-      - 用户
+        - 用户
 swagger: "2.0"
