@@ -2,13 +2,13 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/e421083458/golang_common/lib"
-	"github.com/gin-gonic/contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 	"go_gateway/dao"
 	"go_gateway/dto"
 	"go_gateway/middleware"
-	"go_gateway/public"
 	"time"
 )
 
@@ -18,6 +18,25 @@ type AdminLoginController struct {
 func AdminLoginRegister(group *gin.RouterGroup) {
 	adminLogin := &AdminLoginController{}
 	group.POST("/login", adminLogin.AdminLogin)
+	group.GET("/logout", adminLogin.AdminLoginOut)
+}
+
+// 声明一个全局的redisdb变量
+var redisdb *redis.Client
+
+// InitClient 初始化连接
+func InitClient() (err error) {
+	redisdb = redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+
+	_, err = redisdb.Ping().Result()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (adminLogin *AdminLoginController) AdminLogin(c *gin.Context) {
@@ -42,6 +61,7 @@ func (adminLogin *AdminLoginController) AdminLogin(c *gin.Context) {
 		return
 	}
 
+	//在Redis中设置session
 	sessInfo := &dto.AdminSessionInfo{
 		ID:        admin.Id,
 		UserName:  admin.UserName,
@@ -49,13 +69,34 @@ func (adminLogin *AdminLoginController) AdminLogin(c *gin.Context) {
 	}
 	sessBts, err := json.Marshal(sessInfo) //格式化
 	if err != nil {
-		middleware.ResponseError(c, 2003, err)
 		return
 	}
-	sess := sessions.Default(c)
-	sess.Set(public.AdminSessionInfoKey, string(sessBts))
-	sess.Save()
+	err = redisdb.Set("session_admin", string(sessBts), -1).Err()
+	if err != nil {
+		fmt.Printf("set score failed, err:%v\n", err)
+		return
+	}
+
+	//sessInfo := &dto.AdminSessionInfo{
+	//	ID:        admin.Id,
+	//	UserName:  admin.UserName,
+	//	LoginTime: time.Now(),
+	//}
+	//sessBts, err := json.Marshal(sessInfo) //格式化
+	//if err != nil {
+	//	middleware.ResponseError(c, 2003, err)
+	//	return
+	//}
+	//sess := sessions.Default(c)
+	//sess.Set(public.AdminSessionInfoKey, string(sessBts))
+	//sess.Save()
 
 	out := dto.AdminLoginOutput{Token: admin.UserName}
 	middleware.ResponseSuccess(c, out)
+}
+
+// AdminLoginOut 退出登录
+func (adminLogin *AdminLoginController) AdminLoginOut(c *gin.Context) {
+	redisdb.Del("session_admin")
+	middleware.ResponseSuccess(c, "")
 }
